@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 
 """
-test_umls_terminology_services
-----------------------------------
-
 Tests for `uts` module.
 """
 

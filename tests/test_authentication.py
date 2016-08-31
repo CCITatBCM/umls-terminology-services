@@ -1,26 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-""" Tests for `medical_text_indexer` module. """
-
-import sys
 import pytest
 
 from uts.authentication import Authentication
+from uts.settings import API_KEY
 
 
-class TestAuthentication(object):
-    @classmethod
-    def setup_class(cls):
-        cls.authenticator = Authentication('http://skr.nlm.nih.gov/cgi-bin/SKR/Restricted_CAS/API_batchValidationII.pl')
-        pass
+def test_get_ticket_granting_ticket():
+    ticket_granting_ticket = Authentication().get_ticket_granting_ticket(API_KEY)
 
-    def test_get_ticket_granting_ticket(self):
-        authenticator = Authentication('http://skr.nlm.nih.gov/cgi-bin/SKR/Restricted_CAS/API_batchValidationII.pl')
-        ticket_granting_ticket = authenticator.get_ticket_granting_ticket()
+    assert 'http' in ticket_granting_ticket
 
-        assert ticket_granting_ticket[:4] == 'http'
 
-    @classmethod
-    def teardown_class(cls):
-        pass
+def test_get_service_ticket():
+    ticket_granting_ticket = Authentication().get_ticket_granting_ticket(API_KEY)
+    service_ticket = Authentication().get_service_ticket(ticket_granting_ticket, 'mti')
+
+    assert 'ST-' in service_ticket

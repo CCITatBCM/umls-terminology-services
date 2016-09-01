@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from uts.authentication import Authentication
+from uts.settings import SERVICES
+import pytest
+
+service_data = list(SERVICES.keys())
 
 
 def test_authentication():
@@ -10,7 +14,8 @@ def test_authentication():
     assert 'http' in ticket_granting_ticket
 
 
-def test_get_service_ticket():
-    service_ticket = Authentication().get_service_ticket('mti')
+@pytest.mark.parametrize("service", service_data)
+def test_get_service_ticket(service):
+    service_ticket = Authentication().get_service_ticket(service)
 
     assert 'ST-' in service_ticket

@@ -2,44 +2,58 @@ import requests, os, time, json
 from pyquery import PyQuery
 from .settings import AUTH_URL, API_KEY, SERVICES
 
-cache_file = os.path.abspath('uts/api_cache.json')
+
+CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api_cache.json')
 
 
 class Authentication:
 
-    def get_ticket_granting_ticket(self, apikey):
-        now = time.time()
-        cached_tgt = self.get_cached_tgt(apikey)
-        print(cached_tgt)
-        params = {'apikey': apikey}
+    def __init__(self):
+        cached_tgt = self.get_cached_tgt()
+
+        if cached_tgt:
+            self.ticket_granting_ticket = cached_tgt
+        else:
+            new_tgt = self.request_ticket_granting_ticket()
+            cache_data = {
+                'ticket_granting_ticket': new_tgt,
+                'time': time.time(),
+            }
+            file = open(CACHE_FILE, 'w+')
+            json.dump(cache_data, file)
+
+            self.ticket_granting_ticket = new_tgt
+
+    @staticmethod
+    def request_ticket_granting_ticket():
+        params = {'apikey': API_KEY}
         headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain", "User-Agent": "python"}
         request = requests.post(AUTH_URL, data=params, headers=headers)
         ticket_granting_ticket = PyQuery(request.text).find('form').attr('action')
 
         return ticket_granting_ticket
 
-    def get_service_ticket(self, ticket_granting_ticket, service):
+    def get_service_ticket(self, service):
         params = {'service': SERVICES[service]}
         headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain", "User-Agent": "python"}
-        request = requests.post(ticket_granting_ticket, data=params, headers=headers)
+        request = requests.post(self.ticket_granting_ticket, data=params, headers=headers)
 
         return request.text
 
-    def get_cached_tgt(self, apikey):
-        print(cache_file)
+    @staticmethod
+    def get_cached_tgt():
         try:
-            file = open('/Users/aadams/Sites/umls_terminology_services/uts/api_cache.json', 'r')
-            cached = json.load(file)
-            file.close(self)
+            file = open(CACHE_FILE, 'r')
+            cached_tgt = json.load(file)
+            file.close()
 
-            return cached[apikey]
-        finally:
-            return 'error'
-        # print(cached)
-        # file.close()
-        # print(int(now - previous))
-        # file = open('/Users/aadams/Sites/umls_terminology_services/tgtcache.json', 'w+')
-        # data = {"1aa0bcde-b02c-4e59-b7dd-178fdc2c948e": time.time()}
-        # json.dump(data, file)
-        # file.close()
-        # print(json.dumps(data))
+            if 'time' in cached_tgt:
+                # if cached ticket granting ticket is < 6 hours old
+                if time.time() - cached_tgt.get('time') < 21600:
+                    return cached_tgt.get('ticket_granting_ticket')
+                else:
+                    return False
+            else:
+                return False
+        except:
+            return False

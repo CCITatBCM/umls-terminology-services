@@ -1,7 +1,6 @@
 import requests, os, time, json
 from pyquery import PyQuery
-from .settings import AUTH_URL, API_KEY, SERVICES
-
+from uts.settings import AUTH_URL, UMLS_SETTINGS
 
 CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api_cache.json')
 
@@ -26,7 +25,7 @@ class Authenticator:
 
     @staticmethod
     def request_ticket_granting_ticket():
-        params = {'apikey': API_KEY}
+        params = {'apikey': UMLS_SETTINGS.API_KEY}
         headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain", "User-Agent": "python"}
         request = requests.post(AUTH_URL, data=params, headers=headers)
         ticket_granting_ticket = PyQuery(request.text).find('form').attr('action')
@@ -34,7 +33,7 @@ class Authenticator:
         return ticket_granting_ticket
 
     def get_service_ticket(self, service):
-        params = {'service': SERVICES[service]}
+        params = {'service': UMLS_SETTINGS['SERVICES'][service]}
         headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain", "User-Agent": "python"}
         request = requests.post(self.ticket_granting_ticket, data=params, headers=headers)
 

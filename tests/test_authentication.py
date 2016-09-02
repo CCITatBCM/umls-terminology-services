@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 from uts.authentication import Authenticator
-from uts.settings import SERVICES
+from uts.settings import UMLS_SETTINGS
 import pytest
 
-service_data = list(SERVICES.keys())
+service_data = list(UMLS_SETTINGS['SERVICES'].keys())
 
 
 def test_authentication():

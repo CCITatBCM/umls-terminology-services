@@ -25,7 +25,7 @@ class Authenticator:
 
     @staticmethod
     def request_ticket_granting_ticket():
-        params = {'apikey': UMLS_SETTINGS.API_KEY}
+        params = {'apikey': UMLS_SETTINGS['API_KEY']}
         headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain", "User-Agent": "python"}
         request = requests.post(AUTH_URL, data=params, headers=headers)
         ticket_granting_ticket = PyQuery(request.text).find('form').attr('action')
@@ -49,10 +49,9 @@ class Authenticator:
             if 'time' in cached_tgt:
                 # if cached ticket granting ticket is < 6 hours old
                 if time.time() - cached_tgt.get('time') < 21600:
-                    return cached_tgt.get('ticket_granting_ticket')
-                else:
-                    return False
-            else:
-                return False
+                    if cached_tgt.get('ticket_granting_ticket'):
+                        return cached_tgt.get('ticket_granting_ticket')
+
+            return False
         except:
             return False

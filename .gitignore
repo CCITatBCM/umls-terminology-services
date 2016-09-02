@@ -66,3 +66,5 @@ target/
 
 # macOS
 *.DS_Store
+
+api_cache.json

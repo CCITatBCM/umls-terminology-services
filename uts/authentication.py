@@ -6,7 +6,7 @@ from .settings import AUTH_URL, API_KEY, SERVICES
 CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api_cache.json')
 
 
-class Authentication:
+class Authenticator:
 
     def __init__(self):
         cached_tgt = self.get_cached_tgt()

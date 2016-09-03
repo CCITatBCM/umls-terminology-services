@@ -5,7 +5,7 @@ from uts.settings import AUTH_URL, UMLS_SETTINGS
 CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'api_cache.json')
 
 
-class Authenticator:
+class Authenticator(object):
 
     def __init__(self):
         cached_tgt = self.get_cached_tgt()

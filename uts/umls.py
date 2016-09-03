@@ -1,78 +1,92 @@
-import this
-
 import requests, json
-import itertools
 from python_http_client import Client
 from uts.settings import UMLS_SETTINGS, AVAILABLE_QUERY_PARAMS
 from uts.authentication import Authenticator
+from collections import abc
 
+BASE_URL = 'https://uts-ws.nlm.nih.gov/rest/'
+SERVICE = 'umls'
 
 authenticator = Authenticator()
-
-base_url = 'https://uts-ws.nlm.nih.gov/rest/'
-service = 'umls'
-
-client = Client(host=base_url)
+client = Client(host=BASE_URL)
 
 
-class Concept(object):
+class Content:
+    def __init__(self, resource_url, sabs=None, language=None,
+                 page_number=None, page_size=None, ttys=None,
+                 include_obsolete=None, include_suppressible=None):
+        self.resource_url = resource_url
+        self.response = handle_request(
+            self.resource_url,
+            params=build_query_params(
+                sabs=sabs,
+                language=language,
+                pageNumber=page_number,
+                pageSize=page_size,
+                ttys=ttys,
+                includeObsolete=include_obsolete,
+                includeSuppressible=include_suppressible
+            )
+        )
+        if self.response is not False:
+            self.__data = self.response
+        else:
+            self.__data = {}
+
+    def __getattr__(self, name):
+        if hasattr(self.__data, name):
+            return getattr(self.__data, name)
+        elif name in self.__data:
+            return self.__data[name]
+        else:
+            return Content.build(self.__data[name])
+
+    @classmethod
+    def build(cls, obj):
+        print(obj)
+        if isinstance(obj, abc.Mapping):
+            return cls(obj)
+        elif isinstance(obj, abc.MutableSequence):
+            return [cls.build(item) for item in obj]
+        else:
+            return obj
+
+
+class Concept(Content):
     def __init__(self, cui=None, version=None):
         self.cui = cui
         self.version = version if version else UMLS_SETTINGS['VERSION']
-        self.base_resource_url = base_url + 'content/' + self.version + '/CUI/' + cui
-        self.resource_url = self.base_resource_url
-        self.atoms = self.Atoms()
+        self.resource_url = BASE_URL + 'content/' + self.version + '/CUI/' + cui
+        Content.__init__(self, self.resource_url)
 
-    @staticmethod
-    def build_query_params(**kwargs):
-        query_params = {
-            'ticket': authenticator.get_service_ticket(service),
-            'language': UMLS_SETTINGS['language'],
-        }
+    def atoms(self, **kwargs):
+        return Content(self.resource_url + '/atoms', kwargs)
 
-        for param in AVAILABLE_QUERY_PARAMS:
-            if param in kwargs:
-                query_params[param] = kwargs[param]
+    def atoms_preferred(self, **kwargs):
+        return Content(self.resource_url + '/atoms/preferred', kwargs)
 
-        return query_params
+    def definitions(self, **kwargs):
+        return Content(self.resource_url + '/definitions', kwargs)
 
-    def get(self):
-        query_params = self.build_query_params()
+    def relations(self, **kwargs):
+        return Content(self.resource_url + '/relations', kwargs)
 
-        return handle_request(self.resource_url, params=query_params)
 
-    def atoms(self, sabs=None, language=None, pageNumber=None, pageSize=None, ttys=None, includeObsolete=None, includeSuppressible=None):
-        resource_url = self.base_resource_url + '/atoms'
-        query_params = self.build_query_params(sabs=sabs, language=language, pageNumber=pageNumber, pageSize=pageSize, ttys=ttys,
-                                               includeObsolete=includeObsolete, includeSuppressible=includeSuppressible)
+def build_query_params(**kwargs):
+    query_params = {
+        'ticket': authenticator.get_service_ticket(SERVICE),
+        'language': UMLS_SETTINGS['language'],
+    }
 
-        return handle_request(resource_url, params=query_params)
+    for param in AVAILABLE_QUERY_PARAMS:
+        if param in kwargs:
+            query_params[param] = kwargs[param]
 
-    def preferred(self, sabs=None, language=None, pageNumber=None, pageSize=None, ttys=None,
-                        includeObsolete=None, includeSuppressible=None):
-        resource_url = self.base_resource_url + '/atoms/preferred'
-        query_params = self.build_query_params(sabs=sabs, language=language, pageNumber=pageNumber, pageSize=pageSize,
-                                               ttys=ttys,
-                                               includeObsolete=includeObsolete, includeSuppressible=includeSuppressible)
-
-        return handle_request(resource_url, params=query_params)
-
-    def definitions(self, sabs=None, pageNumber=None, pageSize=None):
-        resource_url = self.base_resource_url + '/definitions'
-        query_params = self.build_query_params(sabs=sabs, pageNumber=pageNumber, pageSize=pageSize)
-
-        return handle_request(resource_url, params=query_params)
-
-    def relations(self, sabs=None, pageNumber=None, pageSize=None):
-        resource_url = self.base_resource_url + '/relations'
-        query_params = self.build_query_params(sabs=sabs, pageNumber=pageNumber, pageSize=pageSize)
-
-        return handle_request(resource_url, params=query_params)
+    return query_params
 
 
 def handle_request(url, params):
     response = requests.get(url, params=params)
-    print(response.text)
 
     if response.status_code == 200:
         return json.loads(response.text)
@@ -80,50 +94,14 @@ def handle_request(url, params):
         return False
 
 
-# def retrieve_concept(cui):
-#     response = client.content.current.CUI._(cui).get(query_params=get_ticket_params())
-#
-#     return json.loads(response.body.decode('utf8'))['result']
-#
-#
-# def retrieve_concept_atoms(cui, sources=''):
-#     query_params = {
-#         'ticket': authenticator.get_service_ticket(service),
-#         'language': 'ENG'
-#     }
-#     if sources:
-#         query_params.sabs = sources
-#
-#     response = requests.get(base_url + 'content/current/CUI/' + cui + '/atoms', params=query_params)
-#
-#     if response.status_code == 200:
-#         return json.loads(response.text)
-#     else:
-#         return False
-
-#     GET / content / {version} / CUI / {CUI} / atoms
-#     Retrieves
-#     atoms and information
-#     about
-#     atoms
-#     for a known CUI
-#
-#
-# GET / content / {version} / CUI / {CUI} / definitions
-# Retrieves
-# definitions
-# for a known CUI
-# GET / content / {version} / CUI / {CUI} / relations
-
-
 def search():
-    service_ticket = authenticator.get_service_ticket(service)
+    service_ticket = authenticator.get_service_ticket(SERVICE)
     params = {
         'ticket': service_ticket,
         'string': 'cancer',
         'sabs': 'MEDLINEPLUS',
     }
-    request = requests.get(base_url + '/search/current', params=params)
+    request = requests.get(BASE_URL + '/search/current', params=params)
 
     request.encoding = 'utf-8'
     items = json.loads(request.text)

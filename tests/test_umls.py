@@ -8,7 +8,8 @@ concept = umls.Concept(test_cui)
 
 
 def test_concept_get():
-    details = concept.get()
+    details = concept
+    print(details)
 
     assert details is not False
 
@@ -31,3 +32,10 @@ def test_concept_definitions():
     print(definitions)
 
     assert definitions is not False
+
+def test_concept_relations():
+    relations = concept.relations()
+
+    print(relations)
+
+    assert relations is not False
